@@ -3468,6 +3468,16 @@ void CMenus::RenderSettingsDDNet(CUIRect MainView)
 #endif
 }
 
+void CMenus::ConchainReloadSkins(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
+{
+	CMenus *pThis = (CMenus *)pUserData;
+	pfnCallback(pResult, pCallbackUserData);
+	if(pResult->NumArguments() && (pThis->Client()->State() == IClient::STATE_ONLINE || pThis->Client()->State() == IClient::STATE_DEMOPLAYBACK))
+	{
+		pThis->RefreshSkins();
+	}
+}
+
 enum
 {
 	LION_TAB_PAGE1 = 0,
@@ -4519,15 +4529,5 @@ void CMenus::RenderSettingsProfiles(CUIRect MainView)
 		{
 			dbg_msg("menus", "couldn't open file");
 		}
-	}
-}
-
-void CMenus::ConchainReloadSkins(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
-{
-	CMenus *pThis = (CMenus *)pUserData;
-	pfnCallback(pResult, pCallbackUserData);
-	if(pResult->NumArguments() && (pThis->Client()->State() == IClient::STATE_ONLINE || pThis->Client()->State() == IClient::STATE_DEMOPLAYBACK))
-	{
-		pThis->RefreshSkins();
 	}
 }
