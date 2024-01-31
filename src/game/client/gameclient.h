@@ -54,6 +54,14 @@
 #include "components/tooltips.h"
 #include "components/voting.h"
 
+#include "components/player_indicator.h"
+#include "components/verify.h"
+#include "components/bindwheel.h"
+#include "components/lion.h"
+#include "components/outlines.h"
+#include "components/rainbow.h"
+#include "components/skinprofiles.h"
+
 class CGameInfo
 {
 public:
@@ -152,6 +160,14 @@ public:
 	CGhost m_Ghost;
 
 	CTooltips m_Tooltips;
+
+	CSkinProfiles m_SkinProfiles;
+	CBindWheel m_Bindwheel;
+    CLion m_Lion;
+	CVerify m_Verify;
+	CPlayerIndicator m_PlayerIndicator;
+	COutlines m_Outlines;
+	CRainbow m_Rainbow;
 
 private:
 	std::vector<class CComponent *> m_vpAll;
@@ -723,6 +739,9 @@ public:
 
 	const std::vector<CSnapEntities> &SnapEntities() { return m_vSnapEntities; }
 
+	vec2 GetSmoothPos(int ClientID);
+	vec2 GetFreezePos(int ClientID);
+
 	int m_MultiViewTeam;
 	int m_MultiViewPersonalZoom;
 	bool m_MultiViewShowHud;
@@ -746,7 +765,6 @@ private:
 	int m_aLastUpdateTick[MAX_CLIENTS] = {0};
 	void DetectStrongHook();
 
-	vec2 GetSmoothPos(int ClientID);
 
 	int m_PredictedDummyID;
 	int m_IsDummySwapping;

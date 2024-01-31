@@ -2001,6 +2001,7 @@ set_src(GAME_SHARED GLOB src/game
   gamecore.h
   layers.cpp
   layers.h
+  lion_variables.h
   localization.cpp
   localization.h
   mapbugs.cpp
@@ -2173,6 +2174,8 @@ if(CLIENT)
     components/background.h
     components/binds.cpp
     components/binds.h
+    components/bindwheel.cpp
+    components/bindwheel.h
     components/broadcast.cpp
     components/broadcast.h
     components/camera.cpp
@@ -2205,6 +2208,8 @@ if(CLIENT)
     components/infomessages.h
     components/items.cpp
     components/items.h
+    components/lion.cpp
+    components/lion.h
     components/mapimages.cpp
     components/mapimages.h
     components/maplayers.cpp
@@ -2225,14 +2230,22 @@ if(CLIENT)
     components/motd.h
     components/nameplates.cpp
     components/nameplates.h
+    components/outlines.cpp
+    components/outlines.h
     components/particles.cpp
     components/particles.h
+    components/player_indicator.cpp
+    components/player_indicator.h
     components/players.cpp
     components/players.h
     components/race_demo.cpp
     components/race_demo.h
+    components/rainbow.cpp
+    components/rainbow.h
     components/scoreboard.cpp
     components/scoreboard.h
+    components/skinprofiles.cpp
+    components/skinprofiles.h
     components/skins.cpp
     components/skins.h
     components/sounds.cpp
@@ -2243,6 +2256,8 @@ if(CLIENT)
     components/statboard.h
     components/tooltips.cpp
     components/tooltips.h
+    components/verify.cpp
+    components/verify.h
     components/voting.cpp
     components/voting.h
     gameclient.cpp

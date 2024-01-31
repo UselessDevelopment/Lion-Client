@@ -185,7 +185,29 @@ void CNamePlates::RenderNameplatePos(vec2 Position, const CNetObj_PlayerInfo *pP
 		{
 			YOffset -= FontSizeClan;
 			if(m_aNamePlates[ClientID].m_ClanNameTextContainerIndex.Valid())
-				TextRender()->RenderTextContainer(m_aNamePlates[ClientID].m_ClanNameTextContainerIndex, TColor, TOutlineColor, Position.x - m_aNamePlates[ClientID].m_ClanNameTextWidth / 2.0f, YOffset);
+			{
+				if((g_Config.m_ClPingNameCircle || (m_pClient->m_Scoreboard.Active() && !pPlayerInfo->m_Local)) && !(Client()->State() == IClient::STATE_DEMOPLAYBACK))
+				{
+					Graphics()->TextureClear();
+					Graphics()->QuadsBegin();
+					rgb = color_cast<ColorRGBA>(ColorHSLA((300.0f - clamp(m_pClient->m_Snap.m_apPlayerInfos[ClientID]->m_Latency, 0, 300)) / 1000.0f, 1.0f, 0.5f, 0.8f));
+					Graphics()->SetColor(rgb);
+					float CircleSize = 7.0f;
+					Graphics()->DrawCircle(Position.x - tw / 2.0f - CircleSize, YOffset + FontSize / 2.0f + 1.4f, CircleSize, 24);
+					Graphics()->QuadsEnd();
+					TextRender()->RenderTextContainer(m_aNamePlates[ClientID].m_ClanNameTextContainerIndex, TColor, TOutlineColor, Position.x - m_aNamePlates[ClientID].m_ClanNameTextWidth / 2.0f, YOffset);
+				}
+			}
+		}
+
+		if(g_Config.m_ClShowSkinName)
+		{
+			YOffset -= FontSizeClan;
+			char aBuf[128];
+			str_format(aBuf, sizeof(aBuf), "%s", m_pClient->m_aClients[pPlayerInfo->m_ClientID].m_aSkinName);
+			float XOffset = TextRender()->TextWidth(FontSize, aBuf, -1, -1.0f) / 2.0f;
+			TextRender()->TextColor(rgb);
+			TextRender()->Text(Position.x - XOffset, YOffset, FontSize, aBuf, -1.0f);
 		}
 
 		if(g_Config.m_ClNameplatesFriendMark && m_pClient->m_aClients[ClientID].m_Friend)
@@ -323,11 +345,16 @@ void CNamePlates::OnRender()
 			// don't render offscreen
 			if(!(pRenderPos->x < ScreenX0) && !(pRenderPos->x > ScreenX1) && !(pRenderPos->y < ScreenY0) && !(pRenderPos->y > ScreenY1))
 			{
-				RenderNameplatePos(m_pClient->m_aClients[i].m_SpecChar, pInfo, 0.4f, true);
+				if(!g_Config.m_ClRenderNameplateSpec)
+                {
+                    RenderNameplatePos(m_pClient->m_aClients[i].m_SpecChar, pInfo, 0.4f, true);
+                }
 			}
 		}
-		if(m_pClient->m_Snap.m_aCharacters[i].m_Active)
+		if(!m_pClient->m_Snap.m_aCharacters[i].m_Active)
 		{
+			continue;
+			/*
 			// Only render nameplates for active characters
 			pRenderPos = &m_pClient->m_aClients[i].m_RenderPos;
 			// don't render offscreen
@@ -338,6 +365,13 @@ void CNamePlates::OnRender()
 					&m_pClient->m_Snap.m_aCharacters[i].m_Cur,
 					pInfo);
 			}
+			*/
+		}else if(m_pClient->m_Snap.m_aCharacters[i].m_Active) {
+			// only render nameplates for active characters
+			RenderNameplate(
+				&m_pClient->m_Snap.m_aCharacters[i].m_Prev,
+				&m_pClient->m_Snap.m_aCharacters[i].m_Cur,
+				pInfo);
 		}
 	}
 }

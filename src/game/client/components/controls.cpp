@@ -211,7 +211,7 @@ int CControls::SnapInput(int *pData)
 	else
 		m_aInputData[g_Config.m_ClDummy].m_PlayerFlags = PLAYERFLAG_PLAYING;
 
-	if(m_pClient->m_Scoreboard.Active())
+	if(m_pClient->m_Scoreboard.Active() || g_Config.m_ClPingNameCircle)
 		m_aInputData[g_Config.m_ClDummy].m_PlayerFlags |= PLAYERFLAG_SCOREBOARD;
 
 	if(m_pClient->m_Controls.m_aShowHookColl[g_Config.m_ClDummy])
@@ -460,6 +460,17 @@ void CControls::ClampMousePos()
 		MDistance = length(m_aMousePos[g_Config.m_ClDummy]);
 		if(MDistance > MouseMax)
 			m_aMousePos[g_Config.m_ClDummy] = normalize_pre_length(m_aMousePos[g_Config.m_ClDummy], MDistance) * MouseMax;
+		if(g_Config.m_ClLimitMouseToScreen)
+		{
+			float Width, Height;
+			RenderTools()->CalcScreenParams(Graphics()->ScreenAspect(), 1.0f, &Width, &Height);
+			Height /= 2.0f;
+			Width /= 2.0f;
+			if(g_Config.m_ClLimitMouseToScreen == 2)
+				Width = Height;
+			m_aMousePos[g_Config.m_ClDummy].y = clamp(m_aMousePos[g_Config.m_ClDummy].y, -Height, Height);
+			m_aMousePos[g_Config.m_ClDummy].x = clamp(m_aMousePos[g_Config.m_ClDummy].x, -Width, Width);
+		}
 	}
 }
 

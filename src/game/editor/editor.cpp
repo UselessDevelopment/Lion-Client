@@ -8399,7 +8399,7 @@ void CEditor::Init()
 	m_UI.SetPopupMenuClosedCallback([this]() {
 		m_PopupEventWasActivated = false;
 	});
-	m_RenderTools.Init(m_pGraphics, m_pTextRender);
+	m_RenderTools.Init(m_pGraphics, m_pTextRender, (CGameClient *)Kernel()->RequestInterface<IGameClient>());
 	m_ZoomEnvelopeX.Init(this);
 	m_ZoomEnvelopeY.Init(this);
 	m_Map.m_pEditor = this;

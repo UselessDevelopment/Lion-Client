@@ -159,6 +159,7 @@ int CClient::SendMsgActive(CMsgPacker *pMsg, int Flags)
 
 void CClient::SendInfo(int Conn)
 {
+	SendLionInfo(CONN_MAIN);
 	CMsgPacker MsgVer(NETMSG_CLIENTVER, true);
 	MsgVer.AddRaw(&m_ConnectionID, sizeof(m_ConnectionID));
 	MsgVer.AddInt(GameClient()->DDNetVersion());
@@ -245,7 +246,7 @@ void CClient::SendInput()
 	if(m_aPredTick[g_Config.m_ClDummy] <= 0)
 		return;
 
-	bool Force = false;
+	bool Force = true;
 	// fetch input
 	for(int Dummy = 0; Dummy < NUM_DUMMIES; Dummy++)
 	{
@@ -386,7 +387,7 @@ void CClient::EnterGame(int Conn)
 		return;
 
 	m_aCodeRunAfterJoin[Conn] = false;
-
+	m_CodeRunAfterJoinConsole[Conn] = false;
 	// now we will wait for two snapshots
 	// to finish the connection
 	SendEnterGame(Conn);
@@ -1272,7 +1273,7 @@ static CServerCapabilities GetServerCapabilities(int Version, int Flags)
 	Result.m_AnyPlayerFlag = DDNet;
 	Result.m_PingEx = false;
 	Result.m_AllowDummy = true;
-	Result.m_SyncWeaponInput = false;
+	Result.m_SyncWeaponInput = true;
 	if(Version >= 1)
 	{
 		Result.m_ChatTimeoutCode = Flags & SERVERCAPFLAG_CHATTIMEOUTCODE;
@@ -1291,7 +1292,7 @@ static CServerCapabilities GetServerCapabilities(int Version, int Flags)
 	}
 	if(Version >= 5)
 	{
-		Result.m_SyncWeaponInput = Flags & SERVERCAPFLAG_SYNCWEAPONINPUT;
+		Result.m_SyncWeaponInput = true;
 	}
 	return Result;
 }
@@ -1871,20 +1872,37 @@ void CClient::ProcessServerPacket(CNetChunk *pPacket, int Conn, bool Dummy)
 						m_aGameTime[Conn].Update(&m_GametimeMarginGraph, (GameTick - 1) * time_freq() / GameTickSpeed(), TimeLeft, CSmoothTime::ADJUSTDIRECTION_DOWN);
 					}
 
+					if(g_Config.m_ClRunOnJoinConsole && m_aReceivedSnapshots[Conn] > g_Config.m_ClRunOnJoinDelay && !m_CodeRunAfterJoinConsole[Conn])
+					{
+						m_pConsole->ExecuteLine(g_Config.m_ClRunOnJoin);
+						m_CodeRunAfterJoinConsole[Conn] = true;
+					}
+
 					if(m_aReceivedSnapshots[Conn] > GameTickSpeed() && !m_aCodeRunAfterJoin[Conn])
 					{
 						if(m_ServerCapabilities.m_ChatTimeoutCode)
 						{
+							CNetMsg_Cl_Say TOMsgp;
+							TOMsgp.m_Team = 0;
+							char aBufTO[256];
+							str_format(aBufTO, sizeof(aBufTO), "/timeout %s", m_aTimeoutCodes[Conn]);
+							TOMsgp.m_pMessage = aBufTO;
+							CMsgPacker PackerTO(TOMsgp.ms_MsgID, false);
+							TOMsgp.Pack(&PackerTO);
+							SendMsg(Conn, &PackerTO, MSGFLAG_VITAL);
+
 							CNetMsg_Cl_Say MsgP;
 							MsgP.m_Team = 0;
 							char aBuf[128];
 							char aBufMsg[256];
-							if(!g_Config.m_ClRunOnJoin[0] && !g_Config.m_ClDummyDefaultEyes && !g_Config.m_ClPlayerDefaultEyes)
+							/* if(!g_Config.m_ClRunOnJoin[0] && !g_Config.m_ClDummyDefaultEyes && !g_Config.m_ClPlayerDefaultEyes)
 								str_format(aBufMsg, sizeof(aBufMsg), "/timeout %s", m_aTimeoutCodes[Conn]);
 							else
-								str_format(aBufMsg, sizeof(aBufMsg), "/mc;timeout %s", m_aTimeoutCodes[Conn]);
+								str_format(aBufMsg, sizeof(aBufMsg), "/mc;timeout %s", m_aTimeoutCodes[Conn]); */
 
-							if(g_Config.m_ClRunOnJoin[0])
+							str_format(aBufMsg, sizeof(aBufMsg), "/mc");
+
+							if(g_Config.m_ClRunOnJoin[0] && !g_Config.m_ClRunOnJoinConsole)
 							{
 								str_format(aBuf, sizeof(aBuf), ";%s", g_Config.m_ClRunOnJoin);
 								str_append(aBufMsg, aBuf);
@@ -2853,6 +2871,7 @@ void CClient::Run()
 		if(m_DummySendConnInfo && !m_aNetClient[CONN_DUMMY].SecurityTokenUnknown())
 		{
 			m_DummySendConnInfo = false;
+			SendLionInfo(CONN_DUMMY);
 			SendInfo(CONN_DUMMY);
 			m_aNetClient[CONN_DUMMY].Update();
 			SendReady(CONN_DUMMY);
@@ -4419,6 +4438,21 @@ int main(int argc, const char **argv)
 		pConsole->SetUnknownCommandCallback(IConsole::EmptyUnknownCommandCallback, nullptr);
 	}
 
+	// execute mclient config file
+	if(pStorage->FileExists(LCONFIG_FILE, IStorage::TYPE_ALL))
+	{
+		pConsole->SetUnknownCommandCallback(SaveUnknownCommandCallback, pClient);
+		if(!pConsole->ExecuteFile(LCONFIG_FILE))
+		{
+			const char *pError = "Failed to load config from '" LCONFIG_FILE "'.";
+			dbg_msg("client", "%s", pError);
+			pClient->ShowMessageBox("Config File Error", pError);
+			PerformAllCleanup();
+			return -1;
+		}
+		pConsole->SetUnknownCommandCallback(IConsole::EmptyUnknownCommandCallback, nullptr);
+	}
+
 	// execute autoexec file
 	if(pStorage->FileExists(AUTOEXEC_CLIENT_FILE, IStorage::TYPE_ALL))
 	{
@@ -4622,6 +4656,10 @@ SWarning *CClient::GetCurWarning()
 
 int CClient::MaxLatencyTicks() const
 {
+	if(g_Config.m_ClPredMarginInFreeze && g_Config.m_ClAmIFrozen)
+	{
+		return g_Config.m_ClPredMarginInFreezeAmount;
+	}
 	return GameTickSpeed() + (PredictionMargin() * GameTickSpeed()) / 1000;
 }
 
@@ -4759,4 +4797,23 @@ void CClient::SetLoggers(std::shared_ptr<ILogger> &&pFileLogger, std::shared_ptr
 {
 	m_pFileLogger = pFileLogger;
 	m_pStdoutLogger = pStdoutLogger;
+}
+
+void CClient::SendLionInfo(int Conn)
+{
+	CMsgPacker Msg(NETMSG_IAMLION, true);
+	Msg.AddString("Built on " __DATE__ ", " __TIME__);
+	SendMsg(Conn, &Msg, MSGFLAG_VITAL);
+}
+
+void CClient::GetSmoothFreezeTick(int *pSmoothTick, float *pSmoothIntraTick, float MixAmount)
+{
+	int64_t GameTime = m_aGameTime[g_Config.m_ClDummy].Get(time_get());
+	int64_t PredTime = m_PredictedTime.Get(time_get());
+	int64_t UpperPredTime = clamp(PredTime - (time_freq() / 50) * g_Config.m_ClUnfreezeLagTicks, GameTime, PredTime);
+	int64_t LowestPredTime = clamp(PredTime, GameTime, UpperPredTime);
+	int64_t SmoothTime = clamp(LowestPredTime + (int64_t)(MixAmount * (PredTime - LowestPredTime)), LowestPredTime, PredTime);
+
+	*pSmoothTick = (int)(SmoothTime * 50 / time_freq()) + 1;
+	*pSmoothIntraTick = (SmoothTime - (*pSmoothTick - 1) * time_freq() / 50) / (float)(time_freq() / 50);
 }

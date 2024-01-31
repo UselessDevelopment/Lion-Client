@@ -299,7 +299,12 @@ void CConfigManager::Init()
 	m_pStorage = Kernel()->RequestInterface<IStorage>();
 
 	const auto &&AddVariable = [this](SConfigVariable *pVariable) {
-		m_vpAllVariables.push_back(pVariable);
+		// check if CFGFLAG_LSAVE is set
+		if((pVariable->m_Flags & CFGFLAG_LSAVE) != 0)
+			m_vpLAllVariables.push_back(pVariable);
+		else
+			m_vpAllVariables.push_back(pVariable);
+
 		if((pVariable->m_Flags & CFGFLAG_GAME) != 0)
 			m_vpGameVariables.push_back(pVariable);
 		pVariable->Register();
@@ -342,14 +347,26 @@ void CConfigManager::Init()
 
 void CConfigManager::Reset(const char *pScriptName)
 {
+	bool error = true;
 	for(SConfigVariable *pVariable : m_vpAllVariables)
 	{
 		if((pVariable->m_Flags & m_pConsole->FlagMask()) != 0 && str_comp(pScriptName, pVariable->m_pScriptName) == 0)
 		{
 			pVariable->ResetToDefault();
-			return;
+			error = false;
+			break;
 		}
 	}
+
+	if(!error)
+		for(SConfigVariable *pVariable : m_vpLAllVariables)
+		{
+			if((pVariable->m_Flags & m_pConsole->FlagMask()) != 0 && str_comp(pScriptName, pVariable->m_pScriptName) == 0)
+			{
+				pVariable->ResetToDefault();
+				return;
+			}
+		}
 
 	char aBuf[IConsole::CMDLINE_LENGTH + 32];
 	str_format(aBuf, sizeof(aBuf), "Invalid command: '%s'.", pScriptName);
@@ -366,14 +383,27 @@ void CConfigManager::ResetGameSettings()
 
 void CConfigManager::SetReadOnly(const char *pScriptName, bool ReadOnly)
 {
+	bool error = true;
 	for(SConfigVariable *pVariable : m_vpAllVariables)
 	{
 		if(str_comp(pScriptName, pVariable->m_pScriptName) == 0)
 		{
 			pVariable->m_ReadOnly = ReadOnly;
-			return;
+			error = false;
+			break;
 		}
 	}
+
+	if(!error)
+		for(SConfigVariable *pVariable : m_vpLAllVariables)
+		{
+			if(str_comp(pScriptName, pVariable->m_pScriptName) == 0)
+			{
+				pVariable->m_ReadOnly = ReadOnly;
+				return;
+			}
+		}
+
 	char aBuf[IConsole::CMDLINE_LENGTH + 32];
 	str_format(aBuf, sizeof(aBuf), "Invalid command for SetReadOnly: '%s'", pScriptName);
 	dbg_assert(false, aBuf);
@@ -445,7 +475,7 @@ bool CConfigManager::Save()
 		return false;
 	}
 
-	return true;
+	return LSave();
 }
 
 void CConfigManager::RegisterCallback(SAVECALLBACKFUNC pfnFunc, void *pUserData)
@@ -549,6 +579,75 @@ void CConfigManager::Con_ToggleStroke(IConsole::IResult *pResult, void *pUserDat
 	char aBuf[IConsole::CMDLINE_LENGTH + 32];
 	str_format(aBuf, sizeof(aBuf), "Invalid command: '%s'.", pScriptName);
 	pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "config", aBuf);
+}
+
+void CConfigManager::RegisterLCallback(SAVECALLBACKFUNC pfnFunc, void *pUserData)
+{
+	m_vLCallbacks.emplace_back(pfnFunc, pUserData);
+}
+
+bool CConfigManager::LSave()
+{
+	if(!m_pStorage || !g_Config.m_ClSaveSettings)
+		return true;
+
+	char aConfigFileTmp[IO_MAX_PATH_LENGTH];
+	m_ConfigFile = m_pStorage->OpenFile(IStorage::FormatTmpPath(aConfigFileTmp, sizeof(aConfigFileTmp), LCONFIG_FILE), IOFLAG_WRITE, IStorage::TYPE_SAVE);
+
+	if(!m_ConfigFile)
+	{
+		log_error("config", "ERROR: opening %s failed", aConfigFileTmp);
+		return false;
+	}
+
+	m_Failed = false;
+
+	char aLineBuf[2048];
+	for(const SConfigVariable *pVariable : m_vpLAllVariables)
+	{
+		if((pVariable->m_Flags & CFGFLAG_LSAVE) != 0 && !pVariable->IsDefault())
+		{
+			pVariable->Serialize(aLineBuf, sizeof(aLineBuf));
+			WriteLine(aLineBuf);
+		}
+	}
+
+	for(const auto &Callback : m_vLCallbacks)
+	{
+		Callback.m_pfnFunc(this, Callback.m_pUserData);
+	}
+
+	if(m_Failed)
+	{
+		log_error("config", "ERROR: writing to %s failed", aConfigFileTmp);
+	}
+
+	if(io_sync(m_ConfigFile) != 0)
+	{
+		m_Failed = true;
+		log_error("config", "ERROR: synchronizing %s failed", aConfigFileTmp);
+	}
+
+	if(io_close(m_ConfigFile) != 0)
+	{
+		m_Failed = true;
+		log_error("config", "ERROR: closing %s failed", aConfigFileTmp);
+	}
+
+	m_ConfigFile = 0;
+
+	if(m_Failed)
+	{
+		return false;
+	}
+
+	if(!m_pStorage->RenameFile(aConfigFileTmp, LCONFIG_FILE, IStorage::TYPE_SAVE))
+	{
+		log_error("config", "ERROR: renaming %s to " LCONFIG_FILE " failed", aConfigFileTmp);
+		return false;
+	}
+
+	return true;
 }
 
 IConfigManager *CreateConfigManager() { return new CConfigManager; }

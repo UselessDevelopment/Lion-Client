@@ -116,6 +116,7 @@ typedef void (*ENVELOPE_EVAL)(int TimeOffsetMillis, int Env, ColorRGBA &Channels
 
 class CRenderTools
 {
+	class CGameClient *m_pGameClient;
 	class IGraphics *m_pGraphics;
 	class ITextRender *m_pTextRender;
 
@@ -125,10 +126,12 @@ class CRenderTools
 	static void GetRenderTeeFeetScale(float BaseSize, float &FeetScaleWidth, float &FeetScaleHeight);
 
 public:
+
 	class IGraphics *Graphics() const { return m_pGraphics; }
 	class ITextRender *TextRender() const { return m_pTextRender; }
+	class CGameClient *GameClient() const { return m_pGameClient; }
 
-	void Init(class IGraphics *pGraphics, class ITextRender *pTextRender);
+	void Init(class IGraphics *pGraphics, class ITextRender *pTextRender, class CGameClient *pGameClient);
 
 	void SelectSprite(CDataSprite *pSprite, int Flags = 0, int sx = 0, int sy = 0) const;
 	void SelectSprite(int Id, int Flags = 0, int sx = 0, int sy = 0) const;
@@ -183,6 +186,8 @@ public:
 	void RenderSpeedupmap(CSpeedupTile *pSpeedup, int w, int h, float Scale, ColorRGBA Color, int RenderFlags) const;
 	void RenderSwitchmap(CSwitchTile *pSwitch, int w, int h, float Scale, ColorRGBA Color, int RenderFlags) const;
 	void RenderTunemap(CTuneTile *pTune, int w, int h, float Scale, ColorRGBA Color, int RenderFlags) const;
+	void RenderGameTileOutlines(CTile *pTiles, int w, int h, float Scale, int TileType, float Alpha = 1.0f);
+	void RenderTeleOutlines(CTile *pTiles, CTeleTile *pTele, int w, int h, float Scale, float Alpha = 1.0f);
 };
 
 #endif

@@ -652,6 +652,8 @@ public:
 		SETTINGS_SOUND,
 		SETTINGS_DDNET,
 		SETTINGS_ASSETS,
+		SETTINGS_LION,
+		SETTINGS_PROFILES,
 
 		SETTINGS_LENGTH,
 
@@ -766,6 +768,9 @@ private:
 	// found in menus_settings.cpp
 	void RenderSettingsDDNet(CUIRect MainView);
 	void RenderSettingsAppearance(CUIRect MainView);
+	void RenderSettingsLion(CUIRect MainView);
+	void RenderSettingsProfiles(CUIRect MainView);
+
 	ColorHSLA RenderHSLScrollbars(CUIRect *pRect, unsigned int *pColor, bool Alpha = false, bool ClampedLight = false);
 
 	CServerProcess m_ServerProcess;

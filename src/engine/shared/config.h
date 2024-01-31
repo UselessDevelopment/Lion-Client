@@ -14,6 +14,7 @@
 // include protocol for MAX_CLIENT used in config_variables
 #include <engine/shared/protocol.h>
 
+#define LCONFIG_FILE "settings_lclient.cfg"
 #define CONFIG_FILE "settings_ddnet.cfg"
 #define AUTOEXEC_FILE "autoexec.cfg"
 #define AUTOEXEC_CLIENT_FILE "autoexec_client.cfg"
@@ -56,6 +57,7 @@ enum
 	CFGFLAG_COLLIGHT = 1 << 10,
 	CFGFLAG_COLALPHA = 1 << 11,
 	CFGFLAG_INSENSITIVE = 1 << 12,
+	CFGFLAG_LSAVE = 1 << 13,
 };
 
 struct SConfigVariable
@@ -199,7 +201,9 @@ class CConfigManager : public IConfigManager
 		}
 	};
 	std::vector<SCallback> m_vCallbacks;
+	std::vector<SCallback> m_vLCallbacks;
 
+	std::vector<SConfigVariable *> m_vpLAllVariables;
 	std::vector<SConfigVariable *> m_vpAllVariables;
 	std::vector<SConfigVariable *> m_vpGameVariables;
 	std::vector<const char *> m_vpUnknownCommands;
@@ -217,9 +221,11 @@ public:
 	void ResetGameSettings() override;
 	void SetReadOnly(const char *pScriptName, bool ReadOnly) override;
 	bool Save() override;
+	bool LSave() override;
 	CConfig *Values() override { return &g_Config; }
 
 	void RegisterCallback(SAVECALLBACKFUNC pfnFunc, void *pUserData) override;
+	void RegisterLCallback(SAVECALLBACKFUNC pfnFunc, void *pUserData) override;
 
 	void WriteLine(const char *pLine) override;
 
