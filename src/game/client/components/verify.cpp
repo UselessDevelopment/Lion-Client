@@ -74,7 +74,6 @@ void CVerify::CJob::Run()
 	m_pParent->m_pHttp->Run(pGet);
 	pGet->Wait();
 
-	auto Time = std::chrono::duration_cast<std::chrono::milliseconds>(time_get_nanoseconds() - StartTime);
 	if(pHead->State() == EHttpState::ABORTED)
 	{
 		dbg_msg("verify", "https://ger10.ddnet.org/ aborted");
