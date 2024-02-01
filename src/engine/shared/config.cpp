@@ -383,27 +383,14 @@ void CConfigManager::ResetGameSettings()
 
 void CConfigManager::SetReadOnly(const char *pScriptName, bool ReadOnly)
 {
-	bool error = true;
 	for(SConfigVariable *pVariable : m_vpAllVariables)
 	{
 		if(str_comp(pScriptName, pVariable->m_pScriptName) == 0)
 		{
 			pVariable->m_ReadOnly = ReadOnly;
-			error = false;
-			break;
+			return;
 		}
 	}
-
-	if(!error)
-		for(SConfigVariable *pVariable : m_vpLAllVariables)
-		{
-			if(str_comp(pScriptName, pVariable->m_pScriptName) == 0)
-			{
-				pVariable->m_ReadOnly = ReadOnly;
-				return;
-			}
-		}
-
 	char aBuf[IConsole::CMDLINE_LENGTH + 32];
 	str_format(aBuf, sizeof(aBuf), "Invalid command for SetReadOnly: '%s'", pScriptName);
 	dbg_assert(false, aBuf);
