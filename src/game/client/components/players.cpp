@@ -319,11 +319,13 @@ void CPlayers::RenderHook(
 		vec2 HookPos;
 
 		if(in_range(pPlayerChar->m_HookedPlayer, MAX_CLIENTS - 1))
+		{
 			HookPos = m_pClient->m_aClients[pPlayerChar->m_HookedPlayer].m_RenderPos;
 			if(g_Config.m_ClSwapGhosts && Client()->State() != IClient::STATE_DEMOPLAYBACK && m_pClient->m_Snap.m_LocalClientID == ClientID)
 			{
 				HookPos = GameClient()->GetSmoothPos(pPlayerChar->m_HookedPlayer);
 			}
+		}
 		else
 			HookPos = mix(vec2(Prev.m_HookX, Prev.m_HookY), vec2(Player.m_HookX, Player.m_HookY), IntraTick);
 
