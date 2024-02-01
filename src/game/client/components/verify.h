@@ -27,8 +27,6 @@ class CVerify : public CComponent
 
 	IHttp *m_pHttp;
 	std::shared_ptr<CJob> m_pJob;
-	const char *m_pUrl = "https://ger10.ddnet.org/";
-
 public:
 	virtual int Sizeof() const override { return sizeof(*this); }
 	virtual void OnInit() override;
