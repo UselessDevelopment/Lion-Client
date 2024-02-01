@@ -63,7 +63,6 @@ void CVerify::CJob::Run()
 		return;
 	}
 
-	auto StartTime = time_get_nanoseconds();
 	std::shared_ptr<CHttpRequest> pGet = HttpGet(pUrl);
 	pGet->Timeout(Timeout);
 	pGet->LogProgress(HTTPLOG::FAILURE);
