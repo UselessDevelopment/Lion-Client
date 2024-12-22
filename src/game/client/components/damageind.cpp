@@ -10,6 +10,7 @@
 
 #include "damageind.h"
 
+
 CDamageInd::CDamageInd()
 {
 	m_Lastupdate = 0;
